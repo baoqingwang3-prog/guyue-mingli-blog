@@ -1,17 +1,20 @@
 ---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { publicPosts } from '../lib/posts';
+import { withBase } from '../lib/paths';
 
+const [latest] = publicPosts(await getCollection('posts'));
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="孤月命理研究台" description="条件化断语、证据链与可反驳的传统命理研究。">
+  <section class="hero">
+    <p class="eyebrow">GUYUE MINGLI LAB</p>
+    <h1>孤月命理研究台</h1>
+    <div class="hero-card">
+      <h2>只断盘，不自由补盘</h2>
+      <p>把口诀拆成条件、反条件、出处和置信度；公开内容只使用审核后的原创与脱敏资料。</p>
+      {latest && <a class="primary-link" href={withBase(`/posts/${latest.id}/`)}>阅读方法论</a>}
+    </div>
+  </section>
+</BaseLayout>
