@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="私人解盘台" description="所有者专用命理解读工作台。" noindex={true}>
+  <section class="article-shell">
+    <p id="owner-loading" role="status">正在验证私人访问权限……</p>
+    <p id="owner-error" role="alert" hidden></p>
+    <section id="owner-shell" hidden>
+      <p class="eyebrow">PRIVATE MINGLI DESK</p>
+      <h1>私人解盘台</h1>
+      <p>知识库、固定命盘和版本报告将在后续阶段接入。</p>
+    </section>
+  </section>
+</BaseLayout>
+
+<script>
+  import { checkOwnerAccess } from '../../lib/owner-access';
+  import { withBase } from '../../lib/paths';
+  import { supabase } from '../../lib/supabase';
+
+  const loading = document.querySelector<HTMLElement>('#owner-loading');
+  const error = document.querySelector<HTMLElement>('#owner-error');
+  const shell = document.querySelector<HTMLElement>('#owner-shell');
+
+  async function gateOwnerShell() {
+    const access = await checkOwnerAccess(supabase);
+
+    if (access.reason === 'signed-out') {
+      window.location.replace(withBase('/login/'));
+      return;
+    }
+
+    if (access.reason === 'unavailable') {
+      if (loading) loading.hidden = true;
+      if (error) {
+        error.hidden = false;
+        error.textContent = '私人服务暂时不可用，公开博客仍可正常阅读。';
+      }
+      return;
+    }
+
+    if (!access.allowed) {
+      await supabase.auth.signOut();
+      if (loading) loading.hidden = true;
+      if (error) {
+        error.hidden = false;
+        error.textContent = '此账户没有私人解盘权限。';
+      }
+      return;
+    }
+
+    if (loading) loading.hidden = true;
+    if (shell) shell.hidden = false;
+  }
+
+  void gateOwnerShell();
+</script>
