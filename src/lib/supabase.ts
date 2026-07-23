@@ -4,5 +4,10 @@ import { parsePublicConfig } from './public-config';
 const config = parsePublicConfig(import.meta.env);
 
 export const supabase = createClient(config.url, config.anonKey, {
-  auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true },
+  auth: {
+    flowType: 'implicit',
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
 });

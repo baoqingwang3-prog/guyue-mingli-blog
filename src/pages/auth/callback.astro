@@ -17,14 +17,26 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const code = new URLSearchParams(window.location.search).get('code');
 
   async function completeLogin() {
-    if (!status || !code) {
-      if (status) status.textContent = '登录链接无效或已过期。';
+    if (!status) {
       return;
     }
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (code) {
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error) {
+        history.replaceState({}, document.title, window.location.pathname);
+        status.textContent = '登录链接无效或已过期。';
+        return;
+      }
+    }
+
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
     history.replaceState({}, document.title, window.location.pathname);
-    if (error) {
+    if (error || !session) {
       status.textContent = '登录链接无效或已过期。';
       return;
     }
