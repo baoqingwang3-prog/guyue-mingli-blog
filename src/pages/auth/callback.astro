@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="正在登录" description="验证所有者登录链接。" noindex={true}>
+  <section class="article-shell">
+    <h1>正在验证登录链接</h1>
+    <p id="status" role="status">请稍候……</p>
+  </section>
+</BaseLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+  import { withBase } from '../../lib/paths';
+
+  const status = document.querySelector<HTMLElement>('#status');
+  const code = new URLSearchParams(window.location.search).get('code');
+
+  async function completeLogin() {
+    if (!status || !code) {
+      if (status) status.textContent = '登录链接无效或已过期。';
+      return;
+    }
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    history.replaceState({}, document.title, window.location.pathname);
+    if (error) {
+      status.textContent = '登录链接无效或已过期。';
+      return;
+    }
+    window.location.replace(withBase('/app/'));
+  }
+
+  void completeLogin();
+</script>
