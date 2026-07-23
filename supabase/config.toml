@@ -54,7 +54,7 @@ default_pool_size = 20
 max_client_conn = 100
 
 # [db.vault]
-# secret_key = "env(SECRET_VALUE)"
+# Vault credentials are intentionally not configured.
 
 [db.migrations]
 # If disabled, migrations will be skipped during a db push or reset.
@@ -98,7 +98,7 @@ port = 54323
 # External URL of the API server that frontend connects to.
 api_url = "http://127.0.0.1"
 # OpenAI API Key to use for Supabase AI in the Supabase Studio.
-openai_api_key = "env(OPENAI_API_KEY)"
+# Studio AI is intentionally not configured.
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
@@ -323,7 +323,7 @@ max_frequency = "5s"
 enabled = false
 client_id = ""
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
-secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
+# Apple OAuth credentials are intentionally not configured.
 # Overrides the default auth callback URL derived from auth.external_url.
 redirect_uri = ""
 # Overrides the default auth provider URL. Used to support self-hosted gitlab, single-tenant Azure,
@@ -383,7 +383,7 @@ inspector_port = 8083
 deno_version = 2
 
 # [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+# Edge Runtime credentials are intentionally not configured.
 
 [analytics]
 enabled = true
@@ -400,9 +400,9 @@ s3_host = "env(S3_HOST)"
 # Configures S3 bucket region, eg. us-east-1
 s3_region = "env(S3_REGION)"
 # Configures AWS_ACCESS_KEY_ID for S3 bucket
-s3_access_key = "env(S3_ACCESS_KEY)"
+# Experimental S3 access credentials are intentionally not configured.
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
-s3_secret_key = "env(S3_SECRET_KEY)"
+# Experimental S3 private credentials are intentionally not configured.
 
 # pg-delta is the schema diff engine for db diff / db pull / db remote commit.
 # Set enabled = false to fall back to the legacy migra engine.
