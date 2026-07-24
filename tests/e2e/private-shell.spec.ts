@@ -6,5 +6,5 @@ test('private route contains no personal data and redirects a signed-out browser
   expect(response?.status()).toBe(200);
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex,nofollow');
   await expect(page).toHaveURL(/\/login\/$/);
-  expect(await page.content()).not.toContain('2004-06-12');
+  expect(await page.content()).not.toContain('PRIVATE_BIRTH_MARKER');
 });

@@ -3,18 +3,69 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="私人解盘台" description="所有者专用命理解读工作台。" noindex={true}>
-  <section class="article-shell">
+  <main class="desk-shell">
     <p id="owner-loading" role="status">正在验证私人访问权限……</p>
     <p id="owner-error" role="alert" hidden></p>
     <section id="owner-shell" hidden>
-      <p class="eyebrow">PRIVATE MINGLI DESK</p>
-      <h1>私人解盘台</h1>
-      <p>知识库、固定命盘和版本报告将在后续阶段接入。</p>
+      <header class="desk-heading">
+        <div>
+          <p class="eyebrow">PRIVATE MINGLI DESK</p>
+          <h1>私人解盘台</h1>
+          <p>固定主盘由星阙核验结果导入，仅在所有者登录后读取。</p>
+        </div>
+        <button id="sign-out" class="text-button" type="button">退出登录</button>
+      </header>
+
+      <p id="chart-loading" role="status">正在读取固定主盘……</p>
+      <p id="chart-error" role="alert" hidden></p>
+
+      <section id="chart-panel" class="desk-panel" hidden aria-labelledby="chart-name">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">固定主盘</p>
+            <h2 id="chart-name">—</h2>
+          </div>
+          <span id="chart-verified" class="verify-mark">待核验</span>
+        </div>
+        <dl class="chart-facts">
+          <div><dt>出生地</dt><dd id="chart-place">—</dd></div>
+          <div><dt>法定时间</dt><dd id="chart-time">—</dd></div>
+          <div><dt>八字</dt><dd id="chart-pillars">—</dd></div>
+          <div><dt>紫微</dt><dd id="chart-ziwei">—</dd></div>
+          <div><dt>西占</dt><dd id="chart-western">—</dd></div>
+          <div><dt>来源</dt><dd id="chart-source">—</dd></div>
+        </dl>
+        <p class="chart-note">各模块保留自己的真太阳时算法标识，西占主盘仍以法定钟表时间为标准输入。</p>
+      </section>
+
+      <section class="desk-panel reading-panel" aria-labelledby="reading-title">
+        <p class="section-label">资料解盘</p>
+        <h2 id="reading-title">这次想看什么？</h2>
+        <div class="topic-list" aria-label="常用主题">
+          <button type="button" data-topic="财富">财富</button>
+          <button type="button" data-topic="学业">学业</button>
+          <button type="button" data-topic="感情">感情</button>
+          <button type="button" data-topic="应期">应期</button>
+          <button type="button" data-topic="综合">综合</button>
+        </div>
+        <label for="reading-question">具体问题</label>
+        <textarea id="reading-question" rows="5" placeholder="例如：结合固定主盘和已审核资料，分析未来两年的学业应期。"></textarea>
+        <button id="reading-submit" class="primary-button" type="button" disabled>调用资料解盘</button>
+        <p id="reading-status" class="form-status" role="status">固定主盘加载后即可提交问题。</p>
+        <section id="reading-result" class="reading-result" hidden aria-live="polite">
+          <h3>资料核对结果</h3>
+          <p id="reading-summary"></p>
+          <div id="reading-evidence"></div>
+        </section>
+      </section>
     </section>
-  </section>
+  </main>
 </BaseLayout>
 
 <script>
+  import { chartSummary } from '../../lib/chart-display';
+  import { loadPrimaryChartProfile } from '../../lib/chart-profiles';
+  import { buildEvidenceReading, loadApprovedRules } from '../../lib/knowledge-rules';
   import { checkOwnerAccess } from '../../lib/owner-access';
   import { withBase } from '../../lib/paths';
   import { supabase } from '../../lib/supabase';
@@ -22,6 +73,49 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   const loading = document.querySelector<HTMLElement>('#owner-loading');
   const error = document.querySelector<HTMLElement>('#owner-error');
   const shell = document.querySelector<HTMLElement>('#owner-shell');
+  const chartLoading = document.querySelector<HTMLElement>('#chart-loading');
+  const chartError = document.querySelector<HTMLElement>('#chart-error');
+  const chartPanel = document.querySelector<HTMLElement>('#chart-panel');
+  const readingSubmit = document.querySelector<HTMLButtonElement>('#reading-submit');
+  const readingStatus = document.querySelector<HTMLElement>('#reading-status');
+  const readingQuestion = document.querySelector<HTMLTextAreaElement>('#reading-question');
+  const readingResult = document.querySelector<HTMLElement>('#reading-result');
+  const readingEvidence = document.querySelector<HTMLElement>('#reading-evidence');
+  let activeSubjectKey = '';
+
+  function setText(selector: string, value: string) {
+    const element = document.querySelector<HTMLElement>(selector);
+    if (element) element.textContent = value;
+  }
+
+  async function loadChart() {
+    const result = await loadPrimaryChartProfile(supabase);
+    if (chartLoading) chartLoading.hidden = true;
+
+    if (!result.ok) {
+      if (chartError) {
+        chartError.hidden = false;
+        chartError.textContent = result.reason === 'missing'
+          ? '尚未导入固定主盘。'
+          : '固定主盘暂时无法读取，请稍后重试。';
+      }
+      return;
+    }
+
+    const summary = chartSummary(result.profile);
+    activeSubjectKey = result.profile.subject_key;
+    setText('#chart-name', summary.name);
+    setText('#chart-place', summary.birthPlace);
+    setText('#chart-time', summary.legalTime);
+    setText('#chart-pillars', summary.pillars);
+    setText('#chart-ziwei', summary.ziwei);
+    setText('#chart-western', summary.western);
+    setText('#chart-source', summary.source);
+    setText('#chart-verified', summary.verified ? '星阙已核验' : '待核验');
+    if (chartPanel) chartPanel.hidden = false;
+    if (readingSubmit) readingSubmit.disabled = false;
+    if (readingStatus) readingStatus.textContent = '选择主题或直接输入问题。';
+  }
 
   async function gateOwnerShell() {
     const access = await checkOwnerAccess(supabase);
@@ -52,7 +146,92 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     if (loading) loading.hidden = true;
     if (shell) shell.hidden = false;
+    await loadChart();
   }
+
+  document.querySelector('#sign-out')?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.replace(withBase('/login/'));
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-topic]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const topic = button.dataset.topic ?? '';
+      if (readingQuestion) {
+        readingQuestion.value = `结合固定主盘和已审核资料，分析我的${topic}。`;
+        readingQuestion.focus();
+      }
+    });
+  });
+
+  function appendList(container: HTMLElement, title: string, values: string[]) {
+    if (!values.length) return;
+    const heading = document.createElement('strong');
+    heading.textContent = title;
+    const list = document.createElement('ul');
+    values.forEach((value) => {
+      const item = document.createElement('li');
+      item.textContent = value;
+      list.append(item);
+    });
+    container.append(heading, list);
+  }
+
+  readingSubmit?.addEventListener('click', async () => {
+    if (!readingQuestion?.value.trim()) {
+      if (readingStatus) readingStatus.textContent = '请先输入具体问题。';
+      return;
+    }
+    if (readingSubmit) readingSubmit.disabled = true;
+    if (readingStatus) readingStatus.textContent = '正在读取已审核的私有资料……';
+
+    const rulesResult = await loadApprovedRules(supabase);
+    if (!rulesResult.ok) {
+      if (readingStatus) readingStatus.textContent = '私有资料暂时无法读取，请稍后重试。';
+      if (readingSubmit) readingSubmit.disabled = false;
+      return;
+    }
+
+    const reading = buildEvidenceReading(readingQuestion.value, activeSubjectKey, rulesResult.rules);
+    setText('#reading-summary', reading.summary);
+    if (readingEvidence) {
+      readingEvidence.replaceChildren();
+      reading.items.forEach((item) => {
+        const article = document.createElement('article');
+        article.className = 'evidence-item';
+        const title = document.createElement('h4');
+        title.textContent = `${item.source_title} · ${item.system}`;
+        const status = document.createElement('p');
+        status.className = 'evidence-status';
+        status.textContent = item.applicability === 'counterexample'
+          ? '本命例被记录为反例：不可直接套用'
+          : item.applicability === 'supporting'
+            ? '有命例支持：仍需复核完整条件'
+            : '尚未完成逐项条件核验';
+        const quote = document.createElement('blockquote');
+        quote.textContent = item.original_text;
+        const claim = document.createElement('p');
+        claim.textContent = item.normalized_claim;
+        article.append(title, status, quote, claim);
+        appendList(article, '必要条件', item.required_conditions);
+        appendList(article, '反条件', item.counterconditions);
+        appendList(article, '直接失效条件', item.invalid_if);
+        appendList(article, '不可推出', item.non_claims);
+        if (item.notes) {
+          const notes = document.createElement('p');
+          notes.className = 'evidence-notes';
+          notes.textContent = item.notes;
+          article.append(notes);
+        }
+        readingEvidence.append(article);
+      });
+    }
+    if (readingResult) readingResult.hidden = false;
+    if (readingStatus) readingStatus.textContent = reading.status === 'insufficient'
+      ? '证据不足，未生成推断。'
+      : '已完成资料条件核对。';
+    if (readingSubmit) readingSubmit.disabled = false;
+  });
 
   void gateOwnerShell();
 </script>
